@@ -4,6 +4,8 @@ import { useState } from "react";
 import type { Payout, PublicUser, Tweet } from "@/lib/types";
 import type { PublicRules } from "@/lib/config";
 import TierTable, { fmt } from "./TierTable";
+import Tilt from "./fx/Tilt";
+import Reveal from "./fx/Reveal";
 
 export type Me = {
   user: PublicUser;
@@ -110,7 +112,11 @@ export default function Dashboard({ me, rules, onRefresh }: { me: Me; rules: Pub
               No posts yet. Hit “Post on X” above, then sync.
             </div>
           ) : (
-            me.tweets.map((tw) => <TweetRow key={tw.id} tweet={tw} rules={rules} />)
+            me.tweets.map((tw, i) => (
+              <Reveal key={tw.id} kind="up" delay={Math.min(i, 6) * 80}>
+                <TweetRow tweet={tw} rules={rules} />
+              </Reveal>
+            ))
           )}
         </div>
       </div>
@@ -146,10 +152,10 @@ export default function Dashboard({ me, rules, onRefresh }: { me: Me; rules: Pub
 
 function Stat({ label, value, accent = false }: { label: string; value: string; accent?: boolean }) {
   return (
-    <div className="card p-4">
-      <div className="mono text-xs text-dim">{label}</div>
-      <div className={`mt-1 text-2xl font-bold ${accent ? "text-acid" : ""}`}>{value}</div>
-    </div>
+    <Tilt className="card card-glow rounded-2xl p-4" max={8}>
+      <div className="mono text-xs uppercase tracking-wider text-dim">{label}</div>
+      <div className={`mt-1 text-2xl font-bold ${accent ? "stat-glow text-acid" : ""}`}>{value}</div>
+    </Tilt>
   );
 }
 
@@ -192,7 +198,7 @@ function TweetRow({ tweet, rules }: { tweet: Tweet; rules: PublicRules }) {
         <div className="mt-3">
           <div className="h-1.5 overflow-hidden rounded-full bg-line">
             <div
-              className="h-full rounded-full bg-acid"
+              className="bar-fill h-full rounded-full"
               style={{ width: `${Math.min(100, (m.views / next.views) * 100)}%` }}
             />
           </div>
@@ -211,7 +217,7 @@ function TweetRow({ tweet, rules }: { tweet: Tweet; rules: PublicRules }) {
 function TierTableMini({ tiers, current }: { tiers: PublicRules["tiers"]; current: number }) {
   return (
     <div className="mt-3 hidden sm:block">
-      <TierTable tiers={tiers} current={current} />
+      <TierTable tiers={tiers} current={current} tilt={false} />
     </div>
   );
 }

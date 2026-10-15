@@ -25,7 +25,7 @@ export default function TweetNow({ rules, loggedIn }: { rules: PublicRules; logg
   }
 
   return (
-    <section id="tweet" className="card p-5 sm:p-6">
+    <section id="tweet" className="card card-glow p-5 sm:p-7">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-bold">Tweet now</h2>
         <span className="mono text-xs text-dim">pick a template or write your own</span>
