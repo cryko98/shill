@@ -93,7 +93,7 @@ export default function TweetNow({ rules, loggedIn }: { rules: PublicRules; logg
 
       <p className="mt-3 text-xs text-dim">
         {loggedIn
-          ? `After posting, hit "Sync my posts" below (or wait, we re-check every hour). Views are read straight from X.`
+          ? `After posting, hit "Find my new posts" below, then "Check views" on the post. Views are read straight from X.`
           : `Log in with X first so we can match the post to you and track its views.`}
       </p>
     </section>

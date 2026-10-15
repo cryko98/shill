@@ -90,6 +90,28 @@ body {
   animation: pulse-dot 1.6s ease-in-out infinite;
 }
 
+/* wallet-adapter modal, restyled to the theme */
+.wallet-adapter-modal-wrapper {
+  background: var(--color-panel) !important;
+  border: 1px solid var(--color-line);
+  border-radius: 1rem !important;
+  font-family: var(--font-display) !important;
+}
+.wallet-adapter-modal-title {
+  color: var(--color-ink) !important;
+}
+.wallet-adapter-modal-list .wallet-adapter-button {
+  font-family: var(--font-display) !important;
+  border-radius: 0.75rem !important;
+}
+.wallet-adapter-modal-list .wallet-adapter-button:hover {
+  background: rgba(198, 255, 61, 0.1) !important;
+}
+.wallet-adapter-modal-overlay {
+  background: rgba(7, 9, 12, 0.75) !important;
+  backdrop-filter: blur(6px);
+}
+
 /* ---------- FX layer ---------- */
 .fx-root {
   position: fixed;

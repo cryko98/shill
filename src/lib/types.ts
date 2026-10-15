@@ -17,6 +17,8 @@ export type User = {
   following: number;
   tweetCount: number;
   wallet?: string;
+  /** Last on-chain balance check of the token; amount null = RPC could not answer */
+  holding?: { amount: number | null; checkedAt: number; eligible: boolean };
   joinedAt: number;
   lastSyncAt?: number;
   lastSyncError?: string;
@@ -47,8 +49,10 @@ export type Tweet = {
   };
   /** highest tier index credited so far, -1 = none */
   tier: number;
-  /** SOL credited for this tweet so far */
+  /** SOL earned by this tweet so far (highest tier reached) */
   rewardSol: number;
+  /** SOL the user already claimed for this tweet */
+  claimedSol?: number;
   status: TweetStatus;
   reason?: string;
   /** anti-bot flags, informational */

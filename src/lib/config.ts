@@ -57,8 +57,13 @@ export const MAX_VIEWS_PER_FOLLOWER = num("MAX_VIEWS_PER_FOLLOWER", 40);
 export const MIN_ENGAGEMENT_RATE = num("MIN_ENGAGEMENT_RATE", 0.003);
 export const ALLOW_REPLIES = bool("ALLOW_REPLIES", false);
 
-export const PAYOUTS_LIVE = bool("PAYOUTS_LIVE", false);
-export const MIN_PAYOUT_SOL = num("MIN_PAYOUT_SOL", 0.1);
+/** Whole tokens a wallet must hold to earn and claim. Only enforced once NEXT_PUBLIC_TOKEN_CA is set. */
+export const MIN_HOLD_TOKENS = num("MIN_HOLD_TOKENS", 100_000);
+
+/** When false, rewards accrue and show as claimable but the Claim button does not send SOL. */
+export const CLAIMS_LIVE = bool("CLAIMS_LIVE", bool("PAYOUTS_LIVE", false));
+/** Minimum minutes between two manual checks of the same post. */
+export const CHECK_COOLDOWN_MIN = num("CHECK_COOLDOWN_MIN", 2);
 
 export const ADMIN_USERNAMES = (process.env.ADMIN_USERNAMES || "")
   .split(",")
@@ -86,8 +91,11 @@ export function publicRules() {
     minFollowers: MIN_FOLLOWERS,
     allowReplies: ALLOW_REPLIES,
     syncCooldownMin: SYNC_COOLDOWN_MIN,
-    payoutsLive: PAYOUTS_LIVE,
-    minPayoutSol: MIN_PAYOUT_SOL,
+    checkCooldownMin: CHECK_COOLDOWN_MIN,
+    claimsLive: CLAIMS_LIVE,
+    minHold: MIN_HOLD_TOKENS,
+    holdGate: Boolean(TOKEN_CA) && MIN_HOLD_TOKENS > 0,
+    buyUrl: TOKEN_CA ? `https://jup.ag/swap/SOL-${TOKEN_CA}` : "",
     xConfigured: Boolean(process.env.X_CLIENT_ID),
   };
 }

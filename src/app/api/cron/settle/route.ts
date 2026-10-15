@@ -3,8 +3,7 @@ import { timingSafeEqual } from "node:crypto";
 import { getSessionUserId } from "@/lib/session";
 import { getUser, isAdmin } from "@/lib/users";
 import { settleAll } from "@/lib/rewards";
-import { runPayouts } from "@/lib/payout";
-import { ADMIN_USERNAMES, PAYOUTS_LIVE } from "@/lib/config";
+import { ADMIN_USERNAMES, CLAIMS_LIVE } from "@/lib/config";
 import { clientIp, limited } from "@/lib/ratelimit";
 
 export const runtime = "nodejs";
@@ -18,9 +17,9 @@ function sameSecret(a: string, b: string): boolean {
 }
 
 /**
- * Vercel Cron hits this hourly with CRON_SECRET: refresh every tracked tweet,
- * credit new tiers, then pay out. An admin may call it from the browser;
- * that plans (dry run) unless ?live=1 is passed and PAYOUTS_LIVE is on.
+ * Vercel Cron hits this hourly with CRON_SECRET: refresh every tracked post
+ * so milestones show up even when the user is not clicking "Check".
+ * Nothing is paid here; users claim from the dashboard.
  */
 export async function GET(req: Request) {
   const block = await limited("cron", clientIp(req), 10, 60);
@@ -36,14 +35,6 @@ export async function GET(req: Request) {
   }
   if (!byCron && !byAdmin) return NextResponse.json({ error: "Not allowed" }, { status: 401 });
 
-  const wantLive = new URL(req.url).searchParams.get("live") === "1";
   const settle = await settleAll();
-  const payouts = await runPayouts({ live: byCron || wantLive });
-
-  return NextResponse.json({
-    payoutsLive: PAYOUTS_LIVE,
-    trigger: byCron ? "cron" : "admin",
-    settle,
-    payouts,
-  });
+  return NextResponse.json({ claimsLive: CLAIMS_LIVE, trigger: byCron ? "cron" : "admin", settle });
 }

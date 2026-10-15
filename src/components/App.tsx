@@ -66,7 +66,8 @@ export default function App({ rules }: { rules: PublicRules }) {
     `${fmt(first.views)} views = ${first.sol} SOL`,
     `${fmt(last.views)} views = ${last.sol} SOL`,
     "no games, no tiers, no later",
-    "paid in SOL to your wallet",
+    "check views, claim SOL",
+    `holders only · ${rules.minHold.toLocaleString("en-US")} ${rules.cashtag} min`,
     "views read straight from X",
   ];
 
@@ -178,8 +179,9 @@ export default function App({ rules }: { rules: PublicRules }) {
 
             <Reveal kind="blur" delay={500}>
               <p className="mx-auto mt-6 max-w-xl text-base text-dim sm:text-lg">
-                Post about {rules.cashtag} on X. We read the view count straight from X and send SOL to your wallet.
-                No games, no tiers to unlock, no “rewards later”.
+                Hold {rules.minHold.toLocaleString("en-US")} {rules.cashtag}, post about it on X, check your views
+                here, and when a post hits a milestone, claim the SOL straight to your wallet. No games, no tiers to
+                unlock, no “rewards later”.
               </p>
             </Reveal>
 
@@ -279,22 +281,30 @@ export default function App({ rules }: { rules: PublicRules }) {
           ) : null}
 
           {/* HOW */}
-          <section id="how" className="grid gap-4 sm:grid-cols-3">
+          <section id="how" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Reveal kind="left" delay={0}>
               <Step n="01" title="Log in with X">
                 Read-only access. We only look at your own posts that mention {rules.cashtag}.
               </Step>
             </Reveal>
-            <Reveal kind="up" delay={120}>
-              <Step n="02" title="Post">
+            <Reveal kind="up" delay={100}>
+              <Step n="02" title="Connect your wallet">
+                Sign a free message to prove it is yours.{" "}
+                {rules.holdGate
+                  ? `It must hold at least ${rules.minHold.toLocaleString("en-US")} ${rules.cashtag}.`
+                  : `Holders only: ${rules.minHold.toLocaleString("en-US")} ${rules.cashtag} minimum once the CA is live.`}
+              </Step>
+            </Reveal>
+            <Reveal kind="up" delay={200}>
+              <Step n="03" title="Post">
                 Pick a template or write your own. It must contain {rules.cashtag}. Reposts don’t count
                 {rules.allowReplies ? "" : ", replies don’t count"}.
               </Step>
             </Reveal>
-            <Reveal kind="right" delay={240}>
-              <Step n="03" title="Get paid">
-                Views are read from X. Cross {fmt(first.views)} views and {first.sol} SOL is yours. Paid to your wallet
-                automatically.
+            <Reveal kind="right" delay={300}>
+              <Step n="04" title="Check & claim">
+                Hit Check to see your views. Cross {fmt(first.views)} views, hit Claim, and {first.sol} SOL lands in
+                your wallet right away.
               </Step>
             </Reveal>
           </section>
@@ -304,12 +314,16 @@ export default function App({ rules }: { rules: PublicRules }) {
           <Reveal as="section" kind="up" className="card card-glow p-5 sm:p-7">
             <h2 className="text-2xl font-bold">What does not get paid</h2>
             <ul className="mt-4 grid gap-2 text-sm text-dim sm:grid-cols-2">
+              <li>
+                • Wallets holding less than {rules.minHold.toLocaleString("en-US")} {rules.cashtag} (posts are tracked,
+                nothing is credited until you hold enough)
+              </li>
               <li>• Accounts younger than {rules.minAccountAgeDays} days or under {rules.minFollowers} followers</li>
               <li>• Views far above your follower count with no likes, replies or reposts (bought views)</li>
               <li>• Posts with 1k+ views and almost zero engagement</li>
               <li>• The same text posted twice, reposts{rules.allowReplies ? "" : ", replies"}</li>
               <li>• More than {rules.maxPerDay} posts in a day (the rest are tracked, not paid)</li>
-              <li>• Deleted posts. Payouts already sent are not clawed back, but the account is flagged.</li>
+              <li>• Deleted posts. Claims already sent are not clawed back, but the account is flagged.</li>
             </ul>
           </Reveal>
 

@@ -3,6 +3,7 @@ import {
   ALLOW_REPLIES,
   CAMPAIGN_START,
   CASHTAG,
+  CHECK_COOLDOWN_MIN,
   MAX_REWARDED_PER_DAY,
   MAX_VIEWS_PER_FOLLOWER,
   MIN_ACCOUNT_AGE_DAYS,
@@ -18,6 +19,7 @@ import {
 import { K, store } from "./store";
 import type { Tweet, User } from "./types";
 import { getUser, saveUser } from "./users";
+import { holdGateReason, refreshHolding } from "./holdings";
 import { appBearer, lookupTweets, searchUserTweets, userToken, type XTweet } from "./x";
 
 /** Credit only once a tweet is this old: lets engagement catch up with views. */
@@ -178,7 +180,11 @@ export async function applyMetrics(user: User, tweet: Tweet, fresh: Tweet["metri
   const ageMs = Date.now() - Date.parse(tweet.createdAt);
   const reached = tierFor(fresh.views);
 
-  if (reached > tweet.tier && ageMs >= MIN_AGE_BEFORE_CREDIT_MS) {
+  // Holder gate: not a rejection, the post keeps tracking and credits once the bag is there.
+  const gate = holdGateReason(user);
+  if (gate) {
+    if (reached > tweet.tier) tweet.flags = [...flags, `milestone reached, not credited: ${gate}`];
+  } else if (reached > tweet.tier && ageMs >= MIN_AGE_BEFORE_CREDIT_MS) {
     if (tweet.tier < 0) {
       // First credit for this tweet: enforce the per-day cap.
       const dk = K.rewardedDay(user.id, dayKey(tweet.createdAt));
@@ -197,7 +203,6 @@ export async function applyMetrics(user: User, tweet: Tweet, fresh: Tweet["metri
     tweet.rewardSol = target;
     if (delta > 0) {
       user.totals.earnedSol = round(user.totals.earnedSol + delta);
-      await store.zincrby(K.owed, user.id, delta);
       await store.zincrby(K.leaderboard, user.id, delta);
     }
   }
@@ -237,6 +242,7 @@ export async function syncUser(user: User, opts: { force?: boolean } = {}): Prom
   let newTweets = 0;
   let updated = 0;
   try {
+    await refreshHolding(user);
     const start = Number.isFinite(CAMPAIGN_START) ? CAMPAIGN_START : user.joinedAt;
     const found = await searchUserTweets(token, user.username, CASHTAG, {
       sinceId: user.sinceId,
@@ -295,6 +301,7 @@ export async function settleAll(): Promise<{ checked: number; errors: string[] }
     const user = await getUser(userId);
     if (!user) continue;
     try {
+      await refreshHolding(user);
       const token = appBearer() ?? (await userToken(user));
       for (let i = 0; i < list.length; i += 100) {
         const chunk = list.slice(i, i + 100);
@@ -316,6 +323,49 @@ export async function settleAll(): Promise<{ checked: number; errors: string[] }
     }
   }
   return { checked, errors };
+}
+
+/**
+ * Re-read one post's metrics on demand (the "Check" button). Rate limited per
+ * post so a user hammering the button does not burn API reads.
+ */
+export async function checkTweet(
+  user: User,
+  tweet: Tweet,
+  opts: { force?: boolean } = {}
+): Promise<{ tweet: Tweet; error?: string }> {
+  if (tweet.userId !== user.id) return { tweet, error: "Not your post" };
+  if (tweet.status !== "tracking") return { tweet };
+
+  if (!opts.force) {
+    const last = await store.get<number>(K.checkedAt(tweet.id));
+    if (last && Date.now() - last < CHECK_COOLDOWN_MIN * 60_000) {
+      return { tweet, error: `Checked a moment ago, try again in ${CHECK_COOLDOWN_MIN} min` };
+    }
+  }
+  await store.set(K.checkedAt(tweet.id), Date.now(), { ex: CHECK_COOLDOWN_MIN * 60 });
+
+  let token: string;
+  try {
+    token = appBearer() ?? (await userToken(user));
+  } catch {
+    return { tweet, error: "X login expired, please log in again" };
+  }
+  try {
+    await refreshHolding(user, { force: opts.force });
+    const [x] = await lookupTweets(token, [tweet.id]);
+    if (!x) {
+      await reject(tweet, "Post was deleted");
+      await store.set(K.tweet(tweet.id), tweet);
+      await saveUser(user);
+      return { tweet };
+    }
+    const updated = await applyMetrics(user, tweet, metricsOf(x));
+    await saveUser(user);
+    return { tweet: updated };
+  } catch (e) {
+    return { tweet, error: (e as Error).message };
+  }
 }
 
 export async function userTweets(userId: string, limit = 50): Promise<Tweet[]> {
